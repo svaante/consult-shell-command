@@ -143,7 +143,7 @@ See `consult--multi'."
                        'exit-status (process-exit-status process)
                        metadata)
     (put-text-property 0 (length metadata)
-                       'end-time (time-to-seconds (current-time))
+                       'end-time (time-to-seconds)
                        metadata)
     (cancel-timer timer)))
 
@@ -248,7 +248,7 @@ See `consult--multi'."
   :global t
   (cl-loop for (_ _ hook) in consult-shell-command-modes do
            (funcall (if consult-shell-command-mode #'add-hook #'remove-hook)
-                    hook 'consult-shell-command--hook)))
+                    hook #'consult-shell-command--hook)))
 
 (provide 'consult-shell-command)
 ;;; consult-shell-command.el ends here
