@@ -53,37 +53,13 @@
                                    (symbol :tag "Hook"))))
 
 (defcustom consult-shell-command-sources
-  `(( :name "Live" :narrow ?a
-      :annotate consult-shell-command--annotate
-      :category shell-history
-      :items ,(consult-shell-command--source-items
-               (lambda (command)
-                 (not (get-char-property 0 'end-time command)))))
-    ( :name "Exited" :narrow ?e
-      :annotate consult-shell-command--annotate
-      :category shell-history
-      :items ,(consult-shell-command--source-items
-               (lambda (command)
-                 (get-char-property 0 'end-time command))))
-    ( :narrow (?. . "Directory")
-      :annotate consult-shell-command--annotate
-      :category shell-history
-      :hidden t
-      :items ,(consult-shell-command--source-items
-               (lambda (command)
-                 (equal (get-char-property 0 'directory command)
-                        default-directory))))
-    ( :narrow (?p . "Project")
-      :annotate consult-shell-command--annotate
-      :category shell-history
-      :hidden t
-      :items ,(consult-shell-command--source-items
-               (lambda (command)
-                 (equal (get-char-property 0 'directory command)
-                        (consult--project-root))))))
+  '( consult-shell-command-source--live
+     consult-shell-command-source--exited
+     consult-shell-command-source--directory
+     consult-shell-command-source--project)
   "Sources used by `consult-shell-command' commands.
 See `consult--multi'."
-  :type '(repeat plist))
+  :type '(repeat symbols))
 
 
 ;;; Internals
@@ -95,6 +71,42 @@ See `consult--multi'."
     (cl-loop for command in consult-shell-command-metadata for n upfrom 0
              when (funcall filter command)
              collect (cons (consult--tofu-append command n) command))))
+
+(defvar consult-shell-command-source--live
+  `( :name "Live" :narrow ?a
+     :annotate consult-shell-command--annotate
+     :category shell-history
+     :items ,(consult-shell-command--source-items
+              (lambda (command)
+                (not (get-char-property 0 'end-time command))))))
+
+(defvar consult-shell-command-source--exited
+  `( :name "Exited" :narrow ?e
+     :annotate consult-shell-command--annotate
+     :category shell-history
+     :items ,(consult-shell-command--source-items
+              (lambda (command)
+                (get-char-property 0 'end-time command)))))
+
+(defvar consult-shell-command-source--directory
+  `( :narrow (?. . "Directory")
+     :annotate consult-shell-command--annotate
+     :category shell-history
+     :hidden t
+     :items ,(consult-shell-command--source-items
+              (lambda (command)
+                (equal (get-char-property 0 'directory command)
+                       default-directory)))))
+
+(defvar consult-shell-command-source--project
+  `( :narrow (?p . "Project")
+     :annotate consult-shell-command--annotate
+     :category shell-history
+     :hidden t
+     :items ,(consult-shell-command--source-items
+              (lambda (command)
+                (equal (get-char-property 0 'directory command)
+                       (consult--project-root))))))
 
 (defun consult-shell-command--annotate (command)
   (cl-flet ((format-time-diff (diff)
