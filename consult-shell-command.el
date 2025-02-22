@@ -194,7 +194,10 @@ See `consult--multi'."
         (function (get-char-property 0 'command command)))
     (unless function
       (user-error "No associated `command' for `%S'" command))
-    (minibuffer-with-setup-hook (lambda () (insert command))
+    (minibuffer-with-setup-hook
+        (lambda ()
+          (delete-region (minibuffer-prompt-end) (point-max))
+          (insert command))
       (call-interactively function))))
 
 (defun consult-shell-command-kill-process (command)
