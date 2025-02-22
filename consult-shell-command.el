@@ -148,25 +148,26 @@ See `consult--multi'."
     (cancel-timer timer)))
 
 (defun consult-shell-command--hook ()
-  (let* ((process (get-buffer-process (current-buffer)))
-         (command (process-command process))
-         (name (string-join
-                (if (equal (nth 1 command) shell-command-switch)
-                    (nthcdr 2 command)
-                  command)
-                " "))
-         (metadata
-          (propertize name
-                      'command (cadr (assoc major-mode consult-shell-command-modes))
-                      'directory default-directory
-                      'start-time (time-to-seconds (current-time)))))
-    (push metadata consult-shell-command-metadata)
-    (process-put process 'metadata metadata)
-    (let ((timer (timer-create)))
-      (timer-set-time timer nil 1)
-      (timer-set-function timer #'consult-shell-command--poll
-                          (list timer process))
-      (timer-activate timer))))
+  (unless (equal signal-hook-function 'tramp-signal-hook-function)
+    (let* ((process (get-buffer-process (current-buffer)))
+           (command (process-command process))
+           (name (string-join
+                  (if (equal (nth 1 command) shell-command-switch)
+                      (nthcdr 2 command)
+                    command)
+                  " "))
+           (metadata
+            (propertize name
+                        'command (cadr (assoc major-mode consult-shell-command-modes))
+                        'directory default-directory
+                        'start-time (time-to-seconds (current-time)))))
+      (push metadata consult-shell-command-metadata)
+      (process-put process 'metadata metadata)
+      (let ((timer (timer-create)))
+        (timer-set-time timer nil 1)
+        (timer-set-function timer #'consult-shell-command--poll
+                            (list timer process))
+        (timer-activate timer)))))
 
 (defun consult-shell-command--completing-read (prompt)
   (car (consult--multi consult-shell-command-sources
