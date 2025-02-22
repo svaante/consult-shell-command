@@ -176,49 +176,46 @@ See `consult--multi'."
 
 ;;; Commands
 
-(defun consult-shell-command-re (command)
-  "Re run shell COMMAND."
+(defun consult-shell-command (command)
+  "Run run shell COMMAND."
   (interactive (list (consult-shell-command--completing-read
-                      "Re shell command: ")))
+                      "Run shell command: ")))
   (let ((default-directory (or (get-char-property 0 'directory command)
                                default-directory))
         (function (get-char-property 0 'command command)))
     (unless function
-      (user-error "No associated `command' for `%s'" command))
+      (user-error "No associated `command' for `%S'" command))
     (funcall function (substring-no-properties command))))
 
 (defun consult-shell-command-edit (command)
   "Edit shell COMMAND in minibuffer."
-  (interactive (list (consult-shell-command--completing-read
-                      "Edit shell command: ")))
   (let ((default-directory (or (get-char-property 0 'directory command)
                                default-directory))
         (function (get-char-property 0 'command command)))
     (unless function
-      (user-error "No associated `command' for `%s'" command))
+      (user-error "No associated `command' for `%S'" command))
     (minibuffer-with-setup-hook (lambda () (insert command))
       (call-interactively function))))
 
 (defun consult-shell-command-kill-process (command)
-  "Kill process of COMMAND."
-  (interactive (list (consult-shell-command--completing-read
-                      "Kill shell command: ")))
-  (cl-loop for process in (process-list)
+  "Kill process from COMMAND."
+  (cl-loop with id = (get-char-property 0 'id command)
+           for process in (process-list)
            for metadata = (process-get process 'metadata)
-           when (equal metadata command)
+           when (eq id (get-char-property 0 'id metadata))
            return (kill-process process)
-           finally do (user-error "No associated process found for `%s'" command)))
+           finally do (user-error "No associated process found for `%S'" command)))
 
 (defun consult-shell-command-switch-to-buffer (command)
-  "Switch to buffer of COMMAND."
-  (interactive (list (consult-shell-command--completing-read
-                      "Switch to buffer for shell command: ")))
-  (cl-loop for process in (process-list)
+  "Switch to buffer from COMMAND."
+  (cl-loop with id = (get-char-property 0 'id command)
+           for process in (process-list)
            for metadata = (process-get process 'metadata)
            for buffer = (process-buffer process)
-           when (and buffer (equal metadata command))
+           ;; when (and buffer (eq id (get-char-property 0 'id metadata)))
+           when (and buffer (eq command metadata))
            return (switch-to-buffer buffer)
-           finally (user-error "No associated buffer found for `%s'" command)))
+           finally (user-error "No associated buffer found for `%S'" command)))
 
 
 ;;; Integration's
@@ -227,19 +224,20 @@ See `consult--multi'."
   (add-to-list 'savehist-minibuffer-history-variables
                'consult-shell-command-metadata)
 
-  (cl-loop for metadata in consult-shell-command-metadata
-           unless (get-char-property 0 'end-time metadata)
-           do (put-text-property 0 (length metadata)
-                                 'end-time (time-to-seconds)
-                                 metadata)))
+  (cl-loop for metadata in consult-shell-command-metadata do
+           (put-text-property 0 (length metadata)
+                              'end-time (or (get-char-property 0 'end-time metadata)
+                                            (time-to-seconds))
+                              metadata)))
+
 
 (with-eval-after-load 'embark
   (defvar-keymap consult-shell-command-embark-actions-map
     :parent embark-general-map
     "k" #'consult-shell-command-kill-process
     "b" #'consult-shell-command-switch-to-buffer
-    "r" #'consult-shell-command-re
     "e" #'consult-shell-command-edit)
+
   (add-to-list 'embark-keymap-alist
                '(shell-history . consult-shell-command-embark-actions-map)))
 
