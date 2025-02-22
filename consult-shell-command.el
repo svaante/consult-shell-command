@@ -46,7 +46,7 @@
 
 (defcustom consult-shell-command-modes
   '((shell-command-mode async-shell-command shell-command-mode-hook)
-    (compilation-mode   compilation-mode    compilation-mode-hook))
+    (compilation-mode   compile             compilation-start-hook))
   "Alist of (MODE COMMAND HOOK)."
   :type '(alist :key-type symbol
                 :value-type (group (symbol :tag "Command")
@@ -147,27 +147,27 @@ See `consult--multi'."
                        metadata)
     (cancel-timer timer)))
 
-(defun consult-shell-command--hook ()
-  (unless (equal signal-hook-function 'tramp-signal-hook-function)
-    (let* ((process (get-buffer-process (current-buffer)))
-           (command (process-command process))
-           (name (string-join
-                  (if (equal (nth 1 command) shell-command-switch)
-                      (nthcdr 2 command)
-                    command)
-                  " "))
-           (metadata
-            (propertize name
-                        'command (cadr (assoc major-mode consult-shell-command-modes))
-                        'directory default-directory
-                        'start-time (time-to-seconds (current-time)))))
-      (push metadata consult-shell-command-metadata)
-      (process-put process 'metadata metadata)
-      (let ((timer (timer-create)))
-        (timer-set-time timer nil 1)
-        (timer-set-function timer #'consult-shell-command--poll
-                            (list timer process))
-        (timer-activate timer)))))
+(defun consult-shell-command--hook (&rest _)
+  (when-let* (((not (equal signal-hook-function 'tramp-signal-hook-function)))
+              (process (get-buffer-process (current-buffer)))
+              (command (process-command process))
+              (name (string-join
+                     (if (equal (nth 1 command) shell-command-switch)
+                         (nthcdr 2 command)
+                       command)
+                     " "))
+              (metadata
+               (propertize name
+                           'command (cadr (assoc major-mode consult-shell-command-modes))
+                           'directory default-directory
+                           'start-time (time-to-seconds (current-time)))))
+    (push metadata consult-shell-command-metadata)
+    (process-put process 'metadata metadata)
+    (let ((timer (timer-create)))
+      (timer-set-time timer nil 1)
+      (timer-set-function timer #'consult-shell-command--poll
+                          (list timer process))
+      (timer-activate timer))))
 
 (defun consult-shell-command--completing-read (prompt)
   (car (consult--multi consult-shell-command-sources
