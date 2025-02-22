@@ -225,10 +225,12 @@ See `consult--multi'."
 (with-eval-after-load 'savehist
   (add-to-list 'savehist-minibuffer-history-variables
                'consult-shell-command-metadata)
+
   (cl-loop for metadata in consult-shell-command-metadata
            unless (get-char-property 0 'end-time metadata)
            do (put-text-property 0 (length metadata)
-                                 'end-time (time-to-seconds))))
+                                 'end-time (time-to-seconds)
+                                 metadata)))
 
 (with-eval-after-load 'embark
   (defvar-keymap consult-shell-command-embark-actions-map
