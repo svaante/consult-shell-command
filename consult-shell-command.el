@@ -1,4 +1,4 @@
-;;; consult-shell-command.el --  -*- lexical-binding: t -*-
+;;; consult-shell-command.el -- Manage and launch shell commands from consult -*- lexical-binding: t -*-
 
 ;; Copyright (C) 2024  Free Software Foundation, Inc.
 
