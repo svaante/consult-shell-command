@@ -243,6 +243,7 @@ See `consult--multi'."
 
 ;;; Mode
 
+;;;###autoload
 (define-minor-mode consult-shell-command-mode
   "Hook up triggers for metadata annotation."
   :global t
