@@ -147,8 +147,6 @@ See `consult--multi'."
                        metadata)
     (cancel-timer timer)))
 
-(defvar consult-shell-command--repeat 2)
-
 (defun consult-shell-command--hook ()
   (let* ((process (get-buffer-process (current-buffer)))
          (command (process-command process))
@@ -165,7 +163,7 @@ See `consult--multi'."
     (push metadata consult-shell-command-metadata)
     (process-put process 'metadata metadata)
     (let ((timer (timer-create)))
-      (timer-set-time timer nil consult-shell-command--repeat)
+      (timer-set-time timer nil 1)
       (timer-set-function timer #'consult-shell-command--poll
                           (list timer process))
       (timer-activate timer))))
