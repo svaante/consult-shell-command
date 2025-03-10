@@ -202,20 +202,17 @@ See `consult--multi'."
 
 (defun consult-shell-command-kill-process (command)
   "Kill process from COMMAND."
-  (cl-loop with id = (get-char-property 0 'id command)
-           for process in (process-list)
+  (cl-loop for process in (process-list)
            for metadata = (process-get process 'metadata)
-           when (eq id (get-char-property 0 'id metadata))
+           when (eq command metadata)
            return (kill-process process)
            finally do (user-error "No associated process found for `%S'" command)))
 
 (defun consult-shell-command-switch-to-buffer (command)
   "Switch to buffer from COMMAND."
-  (cl-loop with id = (get-char-property 0 'id command)
-           for process in (process-list)
+  (cl-loop for process in (process-list)
            for metadata = (process-get process 'metadata)
            for buffer = (process-buffer process)
-           ;; when (and buffer (eq id (get-char-property 0 'id metadata)))
            when (and buffer (eq command metadata))
            return (switch-to-buffer buffer)
            finally (user-error "No associated buffer found for `%S'" command)))
