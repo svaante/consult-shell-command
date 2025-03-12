@@ -184,7 +184,7 @@ See `consult--multi'."
                                default-directory))
         (function (get-char-property 0 'command command)))
     (unless function
-      (user-error "No associated `command' for `%S'" command))
+      (user-error "No associated `command' for `%s'" command))
     (funcall function (substring-no-properties command))))
 
 (defun consult-shell-command-edit (command)
@@ -193,7 +193,7 @@ See `consult--multi'."
                                default-directory))
         (function (get-char-property 0 'command command)))
     (unless function
-      (user-error "No associated `command' for `%S'" command))
+      (user-error "No associated `command' for `%s'" command))
     (minibuffer-with-setup-hook
         (lambda ()
           (delete-region (minibuffer-prompt-end) (point-max))
@@ -206,7 +206,7 @@ See `consult--multi'."
            for metadata = (process-get process 'metadata)
            when (eq command metadata)
            return (kill-process process)
-           finally do (user-error "No associated process found for `%S'" command)))
+           finally do (user-error "No associated process found for `%s'" command)))
 
 (defun consult-shell-command-switch-to-buffer (command)
   "Switch to buffer from COMMAND."
@@ -215,7 +215,7 @@ See `consult--multi'."
            for buffer = (process-buffer process)
            when (and buffer (eq command metadata))
            return (switch-to-buffer buffer)
-           finally (user-error "No associated buffer found for `%S'" command)))
+           finally (user-error "No associated buffer found for `%s'" command)))
 
 
 ;;; Integration's
