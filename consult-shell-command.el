@@ -136,16 +136,40 @@ See `consult--multi'."
                                             (_ 'error)))
               (propertize since-birth 'face 'completions-annotations)))))
 
+(defun consult-shell-command--set (metadata &rest plist)
+  (cl-loop for (key value) on plist by 'cddr
+           do (put-text-property 0 (length metadata) key value metadata)))
+
+(defun consult-shell-command--log (metadata)
+  (file-name-concat
+   (temporary-file-directory)
+   (concat (car (split-string metadata))
+           "-"
+           (thread-last metadata
+                        (get-char-property 0 'start-time)
+                        (seconds-to-time)
+                        (format-time-string "%Y%m%d-%H%M%S.log")))))
+
+(defvar-local consult-shell-command--append-point 1)
+
+(defun consult-shell-command--append (file)
+  (when (> (point-max) consult-shell-command--append-point)
+    (let ((coding-system-for-write 'raw-text))
+      (write-region consult-shell-command--append-point (point-max)
+                    file 'append 'no-echo))
+    (setq-local consult-shell-command--append-point (point-max))))
+
 (defun consult-shell-command--poll (timer process)
-  (when-let* (((memq (process-status process) '(exit signal)))
-              (metadata (process-get process 'metadata)))
-    (put-text-property 0 (length metadata)
-                       'exit-status (process-exit-status process)
-                       metadata)
-    (put-text-property 0 (length metadata)
-                       'end-time (time-to-seconds)
-                       metadata)
-    (cancel-timer timer)))
+  (when-let* ((metadata (process-get process 'metadata)))
+    (when-let* ((buffer (process-buffer process))
+                ((buffer-live-p buffer)))
+      (with-current-buffer buffer
+        (consult-shell-command--append (consult-shell-command--log metadata))))
+    (when (memq (process-status process) '(exit signal))
+      (cancel-timer timer)
+      (consult-shell-command--set metadata
+                                  'exit-status (process-exit-status process)
+                                  'end-time (time-to-seconds)))))
 
 (defun consult-shell-command--hook (&rest _)
   (when-let* (((not (equal signal-hook-function 'tramp-signal-hook-function)))
@@ -156,12 +180,16 @@ See `consult--multi'."
                          (nthcdr 2 command)
                        command)
                      " "))
-              (metadata
-               (propertize name
-                           'command (cadr (assoc major-mode consult-shell-command-modes))
-                           'directory default-directory
-                           'start-time (time-to-seconds (current-time)))))
+              (metadata (substring-no-properties name)))
+    (consult-shell-command--set metadata
+                                'command (cadr (assoc major-mode consult-shell-command-modes))
+                                'directory default-directory
+                                'start-time (time-to-seconds (current-time)))
     (push metadata consult-shell-command-metadata)
+    (add-hook 'kill-buffer-hook
+              (apply-partially #'consult-shell-command--append
+                               (consult-shell-command--log metadata))
+              nil t)
     (process-put process 'metadata metadata)
     (let ((timer (timer-create)))
       (timer-set-time timer nil 1)
@@ -210,7 +238,9 @@ See `consult--multi'."
            for metadata = (process-get process 'metadata)
            when (eq command metadata)
            return (kill-process process)
-           finally do (user-error "No associated process found for `%s'" command)))
+           finally do
+           (consult-shell-command--set metadata 'end-time (time-to-seconds))
+           (user-error "No associated process found for `%s'" command)))
 
 (defun consult-shell-command-switch-to-buffer (command)
   "Switch to buffer of COMMAND."
@@ -223,6 +253,12 @@ See `consult--multi'."
            return (switch-to-buffer buffer)
            finally (user-error "No associated buffer found for `%s'" command)))
 
+(defun consult-shell-command-find-log (command)
+  "Find log file of COMMAND."
+  (interactive (list (consult-shell-command--completing-read
+                      "Find shell command log file: ")))
+  (find-file-read-only (consult-shell-command--log command)))
+
 
 ;;; Integration's
 
@@ -231,10 +267,9 @@ See `consult--multi'."
                'consult-shell-command-metadata)
 
   (cl-loop for metadata in consult-shell-command-metadata do
-           (put-text-property 0 (length metadata)
-                              'end-time (or (get-char-property 0 'end-time metadata)
-                                            (time-to-seconds))
-                              metadata)))
+           (consult-shell-command--set
+            metadata 'end-time (or (get-char-property 0 'end-time metadata)
+                                   (time-to-seconds)))))
 
 
 (with-eval-after-load 'embark
@@ -242,7 +277,8 @@ See `consult--multi'."
     :parent embark-general-map
     "k" #'consult-shell-command-kill-process
     "b" #'consult-shell-command-switch-to-buffer
-    "e" #'consult-shell-command-edit)
+    "e" #'consult-shell-command-edit
+    "f" #'consult-shell-command-find-log)
 
   (add-to-list 'embark-keymap-alist
                '(shell-history . consult-shell-command-embark-actions-map)))
