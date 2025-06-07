@@ -189,6 +189,8 @@ See `consult--multi'."
 
 (defun consult-shell-command-edit (command)
   "Edit shell COMMAND in minibuffer."
+  (interactive (list (consult-shell-command--completing-read
+                      "Edit shell command: ")))
   (let ((default-directory (or (get-char-property 0 'directory command)
                                default-directory))
         (function (get-char-property 0 'command command)))
@@ -201,7 +203,9 @@ See `consult--multi'."
       (call-interactively function))))
 
 (defun consult-shell-command-kill-process (command)
-  "Kill process from COMMAND."
+  "Kill process of COMMAND."
+  (interactive (list (consult-shell-command--completing-read
+                      "Kill shell command: ")))
   (cl-loop for process in (process-list)
            for metadata = (process-get process 'metadata)
            when (eq command metadata)
@@ -209,7 +213,9 @@ See `consult--multi'."
            finally do (user-error "No associated process found for `%s'" command)))
 
 (defun consult-shell-command-switch-to-buffer (command)
-  "Switch to buffer from COMMAND."
+  "Switch to buffer of COMMAND."
+  (interactive (list (consult-shell-command--completing-read
+                      "Switch to shell command buffer: ")))
   (cl-loop for process in (process-list)
            for metadata = (process-get process 'metadata)
            for buffer = (process-buffer process)
