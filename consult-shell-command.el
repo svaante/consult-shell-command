@@ -103,10 +103,12 @@ See `consult--multi'."
      :annotate consult-shell-command--annotate
      :category shell-history
      :hidden t
-     :items ,(consult-shell-command--source-items
-              (lambda (command)
-                (equal (get-char-property 0 'directory command)
-                       (consult--project-root))))))
+     :items ,(lambda ()
+               (let ((root (consult--project-root)))
+                 (funcall (consult-shell-command--source-items
+                           (lambda (command)
+                             (equal (get-char-property 0 'directory command)
+                                    root))))))))
 
 (defun consult-shell-command--annotate (command)
   (cl-flet ((format-time-diff (diff)
@@ -142,8 +144,8 @@ See `consult--multi'."
 
 (defun consult-shell-command--log (metadata)
   (file-name-concat
-   (temporary-file-directory)
-   (concat (car (split-string metadata))
+   temporary-file-directory
+   (concat (car (last (file-name-split (car (split-string metadata)))))
            "-"
            (thread-last metadata
                         (get-char-property 0 'start-time)
@@ -172,15 +174,21 @@ See `consult--multi'."
                                   'end-time (time-to-seconds)))))
 
 (defun consult-shell-command--hook (&rest _)
-  (when-let* (((not (equal signal-hook-function 'tramp-signal-hook-function)))
-              (process (get-buffer-process (current-buffer)))
-              (command (process-command process))
+  (when-let* ((process (get-buffer-process (current-buffer)))
+              (command (or (process-get process 'remote-command)
+                           (process-command process)))
               (name (string-join
                      (if (equal (nth 1 command) shell-command-switch)
                          (nthcdr 2 command)
                        command)
                      " "))
               (metadata (substring-no-properties name)))
+    (when-let* ((tramp-connection-entry (process-get process 'metadata)))
+      ;; HACK If under tramp file handler this will called twice,
+      ;; first with the connection handle then with the "fake"
+      ;; process.  We are not interested in the connection process.
+      (setq consult-shell-command-metadata
+            (delq tramp-connection-entry consult-shell-command-metadata)))
     ;; Setup command metadata
     (consult-shell-command--set metadata
                                 'command (cadr (assoc major-mode consult-shell-command-modes))
@@ -281,6 +289,14 @@ See `consult--multi'."
   (add-to-list 'embark-keymap-alist
                '(shell-history . consult-shell-command-embark-actions-map)))
 
+(defun async-shell-command--fix-tramp (process)
+  ;; TODO Should upstream, this is clearly an oversight
+  (when (processp process)
+    (with-current-buffer (process-buffer process)
+      (shell-command-mode))))
+
+(advice-add #'tramp-handle-shell-command
+            :filter-return #'async-shell-command--fix-tramp)
 
 ;;; Mode
 
