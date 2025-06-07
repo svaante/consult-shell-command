@@ -181,15 +181,18 @@ See `consult--multi'."
                        command)
                      " "))
               (metadata (substring-no-properties name)))
+    ;; Setup command metadata
     (consult-shell-command--set metadata
                                 'command (cadr (assoc major-mode consult-shell-command-modes))
                                 'directory default-directory
                                 'start-time (time-to-seconds (current-time)))
     (push metadata consult-shell-command-metadata)
+    ;; If buffer is suddenly killed, rescue contents into log file
     (add-hook 'kill-buffer-hook
               (apply-partially #'consult-shell-command--append
                                (consult-shell-command--log metadata))
               nil t)
+    ;; Start polling process for process output and exit status
     (process-put process 'metadata metadata)
     (let ((timer (timer-create)))
       (timer-set-time timer nil 1)
