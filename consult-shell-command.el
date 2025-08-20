@@ -129,7 +129,7 @@ See `consult--multi'."
              (if (> seconds (* 7 24 60 60))
                  (format-time-string "%b %d %R" (get-char-property 0 'start-time command))
                (format "%s ago" (format-time-diff seconds))))))
-      (format "%+33s %+6.6s %+3s %+12s"
+      (format "%+33s %+7.7s %+3s %+12s"
               (propertize directory 'face 'dired-directory)
               (propertize age 'face 'completions-annotations)
               (propertize exit-code 'face (pcase exit-code
