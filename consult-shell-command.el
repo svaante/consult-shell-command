@@ -35,6 +35,8 @@
 
 (require 'cl-lib)
 (require 'consult)
+(require 'tramp)
+(require 'shell)
 
 
 ;;; Custom
