@@ -98,7 +98,7 @@ See `consult--multi'."
      :items ,(consult-shell-command--source-items
               (lambda (command)
                 (equal (get-char-property 0 'directory command)
-                       default-directory)))))
+                       (abbreviate-file-name default-directory))))))
 
 (defvar consult-shell-command-source--project
   `( :narrow (?p . "Project")
@@ -110,7 +110,7 @@ See `consult--multi'."
                  (funcall (consult-shell-command--source-items
                            (lambda (command)
                              (equal (get-char-property 0 'directory command)
-                                    root))))))))
+                                    (and root (abbreviate-file-name root))))))))))
 
 (defun consult-shell-command--annotate (command)
   (cl-flet ((format-time-diff (diff)
@@ -192,10 +192,11 @@ See `consult--multi'."
       (setq consult-shell-command-metadata
             (delq tramp-connection-entry consult-shell-command-metadata)))
     ;; Setup command metadata
-    (consult-shell-command--set metadata
-                                'command (cadr (assoc major-mode consult-shell-command-modes))
-                                'directory default-directory
-                                'start-time (time-to-seconds (current-time)))
+    (consult-shell-command--set
+     metadata
+     'command (cadr (assoc major-mode consult-shell-command-modes))
+     'directory (abbreviate-file-name default-directory)
+     'start-time (time-to-seconds (current-time)))
     (push metadata consult-shell-command-metadata)
     ;; If buffer is suddenly killed, rescue contents into log file
     (add-hook 'kill-buffer-hook
