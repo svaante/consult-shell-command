@@ -109,8 +109,9 @@ See `consult--multi'."
                (let ((root (consult--project-root)))
                  (funcall (consult-shell-command--source-items
                            (lambda (command)
-                             (equal (get-char-property 0 'directory command)
-                                    (and root (abbreviate-file-name root))))))))))
+                             (string-prefix-p
+                              (abbreviate-file-name (or root default-directory))
+                              (get-char-property 0 'directory command)))))))))
 
 (defun consult-shell-command--annotate (command)
   (cl-flet ((format-time-diff (diff)
