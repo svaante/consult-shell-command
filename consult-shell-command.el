@@ -111,7 +111,10 @@ See `consult--multi'."
                            (lambda (command)
                              (string-prefix-p
                               (abbreviate-file-name (or root default-directory))
-                              (get-char-property 0 'directory command)))))))))
+                              (let ((directory (get-char-property 0 'directory command)))
+                                (if (file-remote-p directory)
+                                    directory
+                                  (abbreviate-file-name directory)))))))))))
 
 (defun consult-shell-command--annotate (command)
   (cl-flet ((format-time-diff (diff)
